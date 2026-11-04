@@ -1,5 +1,4 @@
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const { v2: cloudinary } = require('cloudinary');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -7,13 +6,22 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'website-manager/logos',
-    allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'gif'],
-    transformation: [{ width: 200, height: 200, crop: 'limit' }],
-  },
-});
+// Same settings as the old CloudinaryStorage params
+const uploadOptions = {
+  folder: 'website-manager/logos',
+  resource_type: 'image',
+  allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'gif'],
+  transformation: [{ width: 200, height: 200, crop: 'limit' }],
+};
 
-module.exports = { cloudinary, storage };
+// Uploads a file buffer (from multer memory storage) to Cloudinary
+const uploadToCloudinary = (buffer, options = {}) =>
+  new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { ...uploadOptions, ...options },
+      (error, result) => (error ? reject(error) : resolve(result))
+    );
+    stream.end(buffer);
+  });
+
+module.exports = { cloudinary, uploadToCloudinary };
