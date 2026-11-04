@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Sidebar } from '../components/Sidebar';
+import { Sidebar, MobileHeader } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 
 export const DashboardLayout = () => {
   const { user, loading } = useAuth();
-  const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -32,19 +31,36 @@ export const DashboardLayout = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 relative">
+      {/* Mobile-only header with hamburger menu to open sidebar */}
+      <MobileHeader
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        onAddWebsite={handleAddWebsite}
+        onLogout={handleLogout}
+      />
+
+      {/* Sidebar: off-screen on mobile, fixed on desktop */}
       <Sidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         onAddWebsite={handleAddWebsite}
         onLogout={handleLogout}
       />
+
+      {/* Mobile backdrop: closes sidebar when tapped */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm sm:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       <div className="min-h-screen sm:ml-64">
-        {location.pathname !== '/' && (
-          <>
-            <Navbar />
-            <main className="p-6 sm:p-8"><Outlet /></main>
-          </>
-        )}
+        {/* Navbar: desktop only (MobileHeader handles mobile) */}
+        <nav className="hidden sm:flex">
+          <Navbar />
+        </nav>
+
+        <main className="p-4 sm:p-6"><Outlet /></main>
       </div>
     </div>
   );

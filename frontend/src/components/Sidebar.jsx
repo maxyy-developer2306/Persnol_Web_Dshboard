@@ -92,7 +92,7 @@ export const Sidebar = ({ onToggle, isOpen, onAddWebsite, onLogout }) => {
 
 export const MobileHeader = ({ onToggle, onAddWebsite, onLogout }) => {
   return (
-    <div className="sm:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+    <div className="sm:hidden sticky top-0 z-40 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
       <div className="flex items-center gap-2">
         <div className="w-7 h-7 bg-black rounded-sm flex items-center justify-center">
           <span className="text-white text-[10px] font-bold">M</span>
