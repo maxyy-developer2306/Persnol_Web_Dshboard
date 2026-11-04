@@ -81,6 +81,14 @@ const dbStates = {
 
 // ---------- Status routes (no DB middleware, so they work even if DB fails) ----------
 
+// Root URL: simple message so opening the bare domain does not show a 404
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Backend is live. Open /api for full status.',
+  });
+});
+
 // Open https://your-backend.vercel.app/api to check deployment status
 app.get('/api', async (req, res) => {
   let dbStatus = 'disconnected';
@@ -98,7 +106,9 @@ app.get('/api', async (req, res) => {
 
   res.status(ok ? 200 : 500).json({
     success: ok,
-    message: ok ? 'API is running and database is connected' : 'API is running but database has a problem',
+    message: ok
+      ? 'API is running and database is connected'
+      : 'API is running but database has a problem',
     environment: process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString(),
     database: {
@@ -111,6 +121,11 @@ app.get('/api', async (req, res) => {
       mongoUriSet: !!process.env.MONGO_URI,
       jwtSecretSet: !!process.env.JWT_SECRET,
       frontendUrlSet: !!process.env.FRONTEND_URL,
+      cloudinarySet: !!(
+        process.env.CLOUDINARY_CLOUD_NAME &&
+        process.env.CLOUDINARY_API_KEY &&
+        process.env.CLOUDINARY_API_SECRET
+      ),
     },
     allowedOrigins,
   });
@@ -142,15 +157,20 @@ app.use('/api/auth', authRoutes);
 app.use('/api/websites', websiteRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// 404 handler
+// 404 handler (shows method and path to make debugging easier)
 app.use((req, res) => {
-  res.status(404).json({ success: false, message: 'Route not found' });
+  res.status(404).json({
+    success: false,
+    message: 'Route not found',
+    method: req.method,
+    path: req.originalUrl,
+  });
 });
 
-// Error handler (also catches CORS errors)
+// Error handler (also catches CORS and multer errors)
 app.use((err, req, res, next) => {
   console.error(err.message);
-  res.status(500).json({ success: false, message: err.message });
+  res.status(err.status || 500).json({ success: false, message: err.message });
 });
 
 // Listen only when running locally (Vercel does not need this)
