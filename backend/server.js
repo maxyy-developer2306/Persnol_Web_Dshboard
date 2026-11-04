@@ -13,30 +13,37 @@ const app = express();
 // Needed on Vercel so secure cookies work behind the proxy
 app.set('trust proxy', 1);
 
-// Allowed origins: local dev + production frontend(s) from env
-// Example: FRONTEND_URL=https://my-dashboard.vercel.app,https://mydomain.com
+// Allowed origins: local dev + production frontend(s)
+// Extra origins can be added with FRONTEND_URL (comma separated, no trailing slash)
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
+  'https://persnol-web-dshboard-jdl1.vercel.app',
   ...(process.env.FRONTEND_URL
     ? process.env.FRONTEND_URL.split(',').map((url) => url.trim().replace(/\/$/, ''))
     : []),
 ];
 
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (Postman, server-to-server, browser address bar)
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    console.error('CORS blocked origin:', origin);
+    return callback(null, false);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
+// Make sure preflight (OPTIONS) requests are answered with CORS headers
+app.options('*', cors(corsOptions));
+
 app.use(express.json());
 app.use(cookieParser());
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (Postman, server-to-server, browser address bar)
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true,
-  })
-);
 
 // ---------- MongoDB connection (cached for serverless) ----------
 let cached = global._mongoose;
@@ -167,7 +174,7 @@ app.use((req, res) => {
   });
 });
 
-// Error handler (also catches CORS and multer errors)
+// Error handler (also catches multer errors)
 app.use((err, req, res, next) => {
   console.error(err.message);
   res.status(err.status || 500).json({ success: false, message: err.message });
